@@ -13,7 +13,9 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { MacroChip } from '@/components/ui/MacroChip';
+import { ScanCounter } from '@/components/ui/ScanCounter';
 import { useDiaryStore } from '@/store/diary';
+import { usePremiumStore } from '@/store/premium';
 import * as api from '@/lib/fake-data';
 import { Colors, FontFamily, FontSize, Layout, Radius, Shadow, Space } from '@/constants/tokens';
 
@@ -25,6 +27,7 @@ export default function ScanScreen() {
   const cameraRef = useRef<CameraView>(null);
 
   const { pendingScan, setPendingScan, clearPendingScan, addMeal } = useDiaryStore();
+  const { canScan, registerScan } = usePremiumStore();
 
   useEffect(() => {
     return () => clearPendingScan();
@@ -32,6 +35,13 @@ export default function ScanScreen() {
 
   async function handleCapture() {
     if (!cameraRef.current) return;
+
+    if (!canScan()) {
+      router.replace('/paywall');
+      return;
+    }
+
+    registerScan();
     setPhase('analysing');
     try {
       const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.6 });
@@ -89,6 +99,11 @@ export default function ScanScreen() {
       >
         <Ionicons name="close" size={24} color="#fff" />
       </Pressable>
+
+      {/* Scan counter */}
+      <View style={styles.scanCounterWrap}>
+        <ScanCounter />
+      </View>
 
       {phase === 'camera' && (
         <>
@@ -158,6 +173,12 @@ export default function ScanScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
+  scanCounterWrap: {
+    position: 'absolute',
+    top: Space[12],
+    left: Space[4],
+    zIndex: 10,
+  },
   closeBtn: {
     position: 'absolute',
     top: Space[12],
